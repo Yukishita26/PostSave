@@ -149,6 +149,7 @@ const get_ids = (tweet) => {
 };
 const get_icon_src = (tweet) => tweet.querySelector('div[data-testid="Tweet-User-Avatar"]')?.querySelector('img')?.getAttribute("src");
 const get_reply = (tweet) => parseInt(tweet.querySelector('[data-testid="reply"]')?.getAttribute("aria-label").split(" ")[0]);
+const get_retweet_elem = (tweet) => tweet.querySelector('[data-testid="retweet"]');
 const get_retweet = (tweet) => parseInt(tweet.querySelector('[data-testid="retweet"]')?.getAttribute("aria-label").split(" ")[0]);
 const get_like = (tweet) => parseInt(tweet.querySelector('[data-testid="like"]')?.getAttribute("aria-label").split(" ")[0]);
 const get_bookmark = (tweet) => parseInt(tweet.querySelector('[data-testid="bookmark"]')?.getAttribute("aria-label").split(" ")[0]);

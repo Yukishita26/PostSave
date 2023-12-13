@@ -6,7 +6,7 @@
 * エラーハンドリングを丁寧に
 */
 
-async function get_set(key, v){
+function get_set(key, v){
     chrome.storage.local.get(key).then((result) => {
         let val = result[key] ?? 0;
         console.log("Value currently is " + val);
@@ -20,6 +20,7 @@ async function get_set(key, v){
 }
 
 function update_tweet_list(data){
+    // storageにデータ保存
     chrome.storage.local.get(["tweets", "users", "last_update"]).then((result) => {
         let tw_dict = result.tweets ?? {};
         let usr_dict = result.users ?? {};
@@ -49,6 +50,7 @@ function update_tweet_list(data){
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // 拡張ボタンをクリックしたときの動作
     if (request !== 'URL') return;
     console.log("content-script:URL");
     var url = document.location.href;    
@@ -62,7 +64,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     var jsonString = JSON.stringify(data);
     console.log(`donload: ${jsonString}`);
     download_text(jsonString, `tweet_${data["url_id"]}.json`);
-})
+});
+
+window.addEventListener("load", setOnLoad, false);
+
+let onLoadIntervalId = undefined;
+function setOnLoad(){
+    console.log("onload start");
+    onLoadIntervalId = setInterval(waching_articles, 1000);
+};
+
+let article_length = undefined;
+let article_last_id = undefined;
+function waching_articles(){
+    //console.log("watching...", article_length, article_last_id);
+    const tweets = document.querySelectorAll('article[data-testid="tweet"]');
+    //console.log(tweets);
+    if(tweets.length === article_length) return;
+    article_length = tweets.length;
+    if(get_tweet_id(tweets[tweets.length - 1]) === article_last_id) return;
+    article_last_id = get_tweet_id(tweets[tweets.length - 1]);
+    [...tweets].forEach((tweet) => {
+        if(tweet.querySelector(`input[class="test-button"]`) === null){
+            const tweet_id = get_tweet_id(tweet);
+            console.log(tweet_id + " button added.");
+            addButotns(tweet, tweet_id);
+        }
+    });
+}
 
 
 function download_text(text, file_name){
@@ -77,6 +106,16 @@ function get_url_id(){
     const url = location.href;
     const url_id = url.split("/").slice(-1)[0];
     return url_id;
+}
+
+function get_parent_element(elem, targetTag){
+    while(elem){
+        if(elem.tagName === targetTag)
+            break;
+        elem = elem.parentElement;
+    }
+    if(elem.tagName != targetTag) return undefined;
+    return elem;
 }
 
 /*
@@ -160,6 +199,31 @@ function getAllTweets(){
         result.push(tweet_stat);
     })
     return result;
+}
+
+function addButotns(article, id){
+    const group = article.querySelector('[data-testid="retweet"]')?.parentElement?.parentElement?.parentElement?.parentElement
+    let div = document.createElement("div")
+    div.setAttribute("class", "test-input-area");
+    div.innerHTML = `<input type="button" value="T" id="test-btn-${id}" class="test-button"">`;
+    div.querySelector("input").addEventListener('click', eachButtonClicked)
+    group.after(div);
+}
+
+function eachButtonClicked(event){
+    const btn = event.target;
+    const tweet = get_parent_element(btn, 'ARTICLE');
+    const tweet_stat = getTweetStats(tweet);
+    console.log(tweet_stat);
+    
+    const url = document.location.href;    
+    const data = {
+        url: url,
+        url_id: get_url_id(),
+        access_date: new Date().toISOString(),
+        tweets: [tweet_stat],
+    }
+    update_tweet_list(data);
 }
 
 function get_unknown_div(tweet){
