@@ -1,7 +1,7 @@
 {
     "name": "Post Save",
     "description": "Save Twitter Post in JSON",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "manifest_version": 3,
     "action": {
       "default_popup": "popup.html"
@@ -13,7 +13,7 @@
     "content_scripts": [
       {
         "matches": ["https://twitter.com/**", "https://x.com/**"],
-        "js": ["content.js"]
+        "js": ["content.js", "tweet_parser.js"]
       }
     ]
 }

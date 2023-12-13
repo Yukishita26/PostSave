@@ -14,7 +14,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         "url": url,
         "url_id": get_url_id(),
         "access_date": new Date().toISOString(),
-        "tweets": getTweets(),
+        "tweets": getAllTweets(),
     }
     var jsonString = JSON.stringify(data);
     console.log(`donload: ${jsonString}`);
@@ -32,10 +32,11 @@ function download_text(text, file_name){
 
 function get_url_id(){
     const url = location.href;
-    const url_id = url.split("/")[url.split("/").length - 1];
+    const url_id = url.split("/").slice(-1)[0];
     return url_id;
 }
 
+/*
 const get_names = (tweet) => {
     var names = tweet.querySelector('div[data-testid="User-Name"]')?.textContent.split("·")[0].split("@");
     switch(names?.length){
@@ -49,6 +50,10 @@ const get_photos = (tweet) => Array.from(tweet.querySelectorAll('div[data-testid
 const get_card = (tweet) => unique(Array.from(tweet.querySelector('div[data-testid="card.wrapper"]')?.querySelectorAll("a") ?? []).map((a)=>a?.getAttribute("href"))).join(", ");
 const get_time = (tweet) => tweet.querySelector('time')?.getAttribute("datetime");
 const get_id = (tweet) => tweet.querySelector('time')?.parentElement.getAttribute("href")?.split("/").slice(-1)[0];
+const get_ids = (tweet) => {
+    const url = tweet.querySelector('time')?.parentElement.getAttribute("href");
+    return [url, url?.split("/".slice(-1)[0])];
+};
 const get_icon = (tweet) => tweet.querySelector('div[data-testid="Tweet-User-Avatar"]')?.querySelector('img')?.getAttribute("src");
 const get_reply = (tweet) => parseInt(tweet.querySelector('[data-testid="reply"]')?.getAttribute("aria-label").split(" ")[0]);
 const get_retweet = (tweet) => parseInt(tweet.querySelector('[data-testid="retweet"]')?.getAttribute("aria-label").split(" ")[0]);
@@ -72,10 +77,12 @@ const get_quote = (tweet) => {
 function getTweetStats(tweet){
     try{
         const [name, screenname] = get_names(tweet);
+        const [url, id] = get_ids(tweet);
         const card = get_card(tweet);
         const text = (card=="")? get_text(tweet): `${get_text(tweet)} ${card}`;
         return {
-            "id": get_id(tweet),
+            "url": url,
+            "id": id,
             "icon": get_icon(tweet),
             "screenname": screenname,
             "name": name,
@@ -94,13 +101,19 @@ function getTweetStats(tweet){
     }
 }
 
-function getTweets(){
+function unique(arr){
+    if(!arr) return []
+    return [...(new Set(arr))]
+}
+*/
+
+function getAllTweets(){
     let result = [];
     const tweets = document.querySelectorAll('article[data-testid="tweet"]');
     const url_id = get_url_id();
     Array.from(tweets).forEach((tweet)=>{
         const tweet_stat = getTweetStats(tweet);
-        console.log(tweet_stat.id, url_id);
+        console.log(tweet_stat.tweet.id, url_id);
         result.push(tweet_stat);
     })
     return result;
@@ -114,9 +127,4 @@ function get_unknown_div(tweet){
                 testid.includes("card") ||
                 testid.includes("UserAvatar-Container"))
         );
-}
-
-function unique(arr){
-    if(!arr) return []
-    return [...(new Set(arr))]
 }
