@@ -13,11 +13,36 @@ function add_alt_text(elem){
         return null;
     }
 }
+function replace_link(elem){
+    try{
+        let clone = elem.cloneNode(true);
+        [...clone.querySelectorAll("a")].forEach((anc)=>{
+            let href = anc.getAttribute("href");
+            const text = anc.textContent;
+            let span = document.createElement("span");
+            span.innerText = `[${text}]("${href}")`;
+            anc.after(span);
+            anc.remove();
+        });
+        return clone;
+    } catch(err){
+        console.log("Unexpected error in `add_alt_text`: " + err.toString());
+        return null;
+    }
+}
 function text_with_alt(elem){
     try{
         return add_alt_text(elem).textContent;
     } catch(err){
         console.log("Unexpected error in `text_with_text`: " + err.toString());
+        return "";
+    }
+}
+function text_md(elem){
+    try{
+        return replace_link(add_alt_text(elem)).textContent;
+    } catch(err){
+        console.log("Unexpected error in `text_md`: " + err.toString());
         return "";
     }
 }
@@ -121,6 +146,14 @@ function get_tweet_text(tweet){
         return null;
     }
 }
+function get_tweet_text_md(tweet){
+    try{
+        return text_md(get_tweet_elem(tweet));
+    } catch(err){
+        console.log("Unexpected error in `get_name_text`: " + err.toString());
+        return null;
+    }
+}
 
 function get_photos(tweet){
     try{
@@ -185,6 +218,7 @@ function getTweetStats(
             //user__screenname: true,
             url: true,
             text: true,
+            text_md: true,
             card: true,
             quote: true,
             photos: true,
@@ -215,6 +249,8 @@ function getTweetStats(
             data.tweet.url = get_url(tweet);
         if(attrs.text)
             data.tweet.text = get_tweet_text(tweet);
+        if(attrs.text_md)
+            data.tweet.text_md = get_tweet_text_md(tweet);
         if(attrs.card)
             data.tweet.card = get_card_hrefs(tweet);
         if(attrs.quote)

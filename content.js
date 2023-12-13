@@ -21,7 +21,7 @@ function get_set(key, v){
 
 function update_tweet_list(data){
     // storageにデータ保存
-    chrome.storage.local.get(["tweets", "users", "last_update"]).then((result) => {
+    chrome.storage.local.get(["tweets", "users", "last_update", "actions"]).then((result) => {
         let tw_dict = result.tweets ?? {};
         let usr_dict = result.users ?? {};
         data.tweets.forEach((tweet) => {
@@ -40,7 +40,8 @@ function update_tweet_list(data){
         let obj = {
             tweets: tw_dict,
             users: usr_dict,
-            last_update: data.access_date
+            last_update: data.access_date,
+            actions: (result.actions ?? []).concat(data.actions ?? [])
         };
         chrome.storage.local.set(obj).then(()=>{
             console.log("Values:");
@@ -55,6 +56,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("content-script:URL");
     var url = document.location.href;    
     var data = {
+        actions: [],
         url: url,
         url_id: get_url_id(),
         access_date: new Date().toISOString(),
@@ -85,7 +87,7 @@ function waching_articles(){
     if(get_tweet_id(tweets[tweets.length - 1]) === article_last_id) return;
     article_last_id = get_tweet_id(tweets[tweets.length - 1]);
     [...tweets].forEach((tweet) => {
-        if(tweet.querySelector(`input[class="test-button"]`) === null){
+        if(tweet.querySelector(`input[class="save-button"]`) === null){
             const tweet_id = get_tweet_id(tweet);
             console.log(tweet_id + " button added.");
             addButotns(tweet, tweet_id);
@@ -201,12 +203,26 @@ function getAllTweets(){
     return result;
 }
 
+let tags = [
+    {key:"test", value:"T"},
+    {key:"usefull", value:"🎓"},
+    {key:"book", value:"📚"},
+    {key:"like", value:"❤"},
+    {key:"warning", value:"⚠"},
+    {key:"r18", value:"🔞"}
+]
 function addButotns(article, id){
     const group = article.querySelector('[data-testid="retweet"]')?.parentElement?.parentElement?.parentElement?.parentElement
     let div = document.createElement("div")
     div.setAttribute("class", "test-input-area");
-    div.innerHTML = `<input type="button" value="T" id="test-btn-${id}" class="test-button"">`;
-    div.querySelector("input").addEventListener('click', eachButtonClicked)
+    let buttons = []
+    tags.forEach((tag)=>{
+        buttons.push(`<span class="save-button-span"><input type="button" class="save-button" value="${tag.value}" tagKey="${tag.key}" id="test-btn-${tag.key}"></span>`)
+    })
+    div.innerHTML = buttons.join("");
+    [...div.querySelectorAll("input")].forEach((input)=>{
+        input.addEventListener('click', eachButtonClicked);
+    });
     group.after(div);
 }
 
@@ -217,10 +233,16 @@ function eachButtonClicked(event){
     console.log(tweet_stat);
     
     const url = document.location.href;    
+    const datetime = new Date().toISOString();
     const data = {
+        actions: [{
+            tag: btn.getAttribute("tagKey"),
+            datetime: datetime,
+            id: tweet_stat.tweet.id
+        }],
         url: url,
         url_id: get_url_id(),
-        access_date: new Date().toISOString(),
+        access_date: datetime,
         tweets: [tweet_stat],
     }
     update_tweet_list(data);
