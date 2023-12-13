@@ -6,16 +6,59 @@
 * エラーハンドリングを丁寧に
 */
 
+async function get_set(key, v){
+    chrome.storage.local.get(key).then((result) => {
+        let val = result[key] ?? 0;
+        console.log("Value currently is " + val);
+        val += v;
+        let obj = {};
+        obj[key] = val;
+        chrome.storage.local.set(obj).then(()=>{
+            console.log("Value is set to " + val);
+        });
+    })
+}
+
+function update_tweet_list(data){
+    chrome.storage.local.get(["tweets", "users", "last_update"]).then((result) => {
+        let tw_dict = result.tweets ?? {};
+        let usr_dict = result.users ?? {};
+        data.tweets.forEach((tweet) => {
+            if(tweet.tweet.id in tw_dict){
+                // update
+            }else{
+                tw_dict[tweet.tweet.id] = tweet.tweet;
+            }
+            if(tweet.user.screenname in usr_dict){
+                // update
+            }else{
+                usr_dict[tweet.user.screenname] = tweet.user;
+            }
+        })
+
+        let obj = {
+            tweets: tw_dict,
+            users: usr_dict,
+            last_update: data.access_date
+        };
+        chrome.storage.local.set(obj).then(()=>{
+            console.log("Values:");
+            console.log(obj);
+        });
+    })
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request !== 'URL') return;
     console.log("content-script:URL");
     var url = document.location.href;    
     var data = {
-        "url": url,
-        "url_id": get_url_id(),
-        "access_date": new Date().toISOString(),
-        "tweets": getAllTweets(),
+        url: url,
+        url_id: get_url_id(),
+        access_date: new Date().toISOString(),
+        tweets: getAllTweets(),
     }
+    update_tweet_list(data);
     var jsonString = JSON.stringify(data);
     console.log(`donload: ${jsonString}`);
     download_text(jsonString, `tweet_${data["url_id"]}.json`);

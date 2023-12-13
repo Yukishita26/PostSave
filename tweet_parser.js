@@ -10,7 +10,7 @@ function add_alt_text(elem){
         return clone;
     } catch(err){
         console.log("Unexpected error in `add_alt_text`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function text_with_alt(elem){
@@ -56,11 +56,11 @@ function get_name_elem(tweet){
                 return names[0];
             default:
                 console.log('Warning: Failed to get attribute: `node("User-Name").childNodes.length!=2`');
-                return undefined;
+                return null;
         }
     } catch(err){
         console.log("Unexpected error in `get_name_elem`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function get_name_rest_elem(tweet){
@@ -71,11 +71,11 @@ function get_name_rest_elem(tweet){
                 return names[1].querySelector("div");
             default:
                 console.log('Warning: Failed to get attribute: `node("User-Name").childNodes.length!=2`');
-                return undefined;
+                return null;
         }
     } catch(err){
         console.log("Unexpected error in `get_name_rest_elem`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function get_name_text(tweet){
@@ -83,7 +83,7 @@ function get_name_text(tweet){
         return text_with_alt(get_name_elem(tweet));
     } catch(err){
         console.log("Unexpected error in `get_name_text`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function get_is_verified(tweet){
@@ -91,7 +91,7 @@ function get_is_verified(tweet){
         return !!tweet.querySelector(`svg[data-testid="icon-verified"]`)
     } catch(err){
         console.log("Unexpected error in `get_is_verified`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function get_is_locked(tweet){
@@ -99,7 +99,7 @@ function get_is_locked(tweet){
         return !!tweet.querySelector(`svg[data-testid="icon-lock"]`)
     } catch(err){
         console.log("Unexpected error in `get_is_verified`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 function get_scname_elem(tweet){
@@ -107,7 +107,7 @@ function get_scname_elem(tweet){
         return get_name_rest_elem(tweet)?.querySelector("div")?.textContent;
     } catch(err){
         console.log("Unexpected error in `get_scname_elem`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 const get_time_elem = (tweet) => tweet.querySelector("time");
@@ -118,11 +118,28 @@ function get_tweet_text(tweet){
         return text_with_alt(get_tweet_elem(tweet));
     } catch(err){
         console.log("Unexpected error in `get_name_text`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
-const get_photos = (tweet) => Array.from(tweet.querySelectorAll('div[data-testid="tweetPhoto"]')).map((photo)=>photo?.querySelector('img,video')?.getAttribute("src"));
-const get_card_href = (tweet) => unique(Array.from(tweet.querySelector('div[data-testid="card.wrapper"]')?.querySelectorAll("a") ?? []).map((a)=>a?.getAttribute("href")));//.join(", ");
+
+function get_photos(tweet){
+    try{
+        const photos = Array.from(tweet.querySelectorAll('div[data-testid="tweetPhoto"]')).map((photo)=>photo?.querySelector('img,video')?.getAttribute("src"));
+        return (photos?.length > 0)? photos: undefined;
+    } catch(err){
+        console.log("Unexpected error in `get_photos`: " + err.toString());
+        return null;
+    }
+}
+function get_card_hrefs(tweet){
+    try{
+        const hrefs = unique(Array.from(tweet.querySelector('div[data-testid="card.wrapper"]')?.querySelectorAll("a") ?? []).map((a)=>a?.getAttribute("href")));//.join(", ");
+        return (hrefs?.length > 0)? hrefs: undefined;
+    } catch(err){
+        console.log("Unexpected error in `get_card_hrefs`: " + err.toString());
+        return null;
+    }
+}
 const get_time = (tweet) => tweet.querySelector('time')?.getAttribute("datetime");
 const get_url = (tweet) => tweet.querySelector('time')?.parentElement.getAttribute("href");
 const get_tweet_id = (tweet) => tweet.querySelector('time')?.parentElement.getAttribute("href")?.split("/").slice(-1)[0];
@@ -139,7 +156,7 @@ const get_bookmark = (tweet) => parseInt(tweet.querySelector('[data-testid="book
 
 const get_quote = (tweet) => {
     const quote = tweet.querySelectorAll(`div[role="link"]`);
-    if(quote.length==0) return {};
+    if(quote.length==0) return undefined;
     const sub_tweet = quote[0].firstChild;
     const [sub_name, sub_screenname] = get_names(sub_tweet);
     return {
@@ -156,7 +173,7 @@ function get_retweet_context(tweet){
         return tweet.querySelector(`span[data-testid="socialContext"]`)?.parentElement?.getAttribute("href")?.split("/")?.slice(-1)[0]
     } catch(err){
         console.log("Unexpected error in `get_retweet_context`: " + err.toString());
-        return undefined;
+        return null;
     }
 }
 
@@ -198,7 +215,7 @@ function getTweetStats(
         if(attrs.text)
             data.tweet.text = get_tweet_text(tweet);
         if(attrs.card)
-            data.tweet.card = get_card_href(tweet);
+            data.tweet.card = get_card_hrefs(tweet);
         if(attrs.quote)
             data.tweet.quote = get_quote(tweet);
         if(attrs.photos)
@@ -231,7 +248,7 @@ function getTweetStats(
                 screenname: screenname,
                 url: get_url(tweet),
                 text: text,
-                card: get_card_href(tweet),
+                card: get_card_hrefs(tweet),
                 quote: get_quote(tweet),
                 photos: get_photos(tweet),
                 time: get_time(tweet),
