@@ -73,6 +73,20 @@ window.addEventListener("load", setOnLoad, false);
 let onLoadIntervalId = undefined;
 function setOnLoad(){
     console.log("onload start");
+    addCSS(
+`.test-input-area{
+    padding: 10px 0 10px 0;
+}
+.save-button-span{
+    padding: 0 5px 0 0;
+}
+.save-button{
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    padding: 0;
+    font-size: 8pt
+}`, "save-buton-style")
     onLoadIntervalId = setInterval(waching_articles, 1000);
 };
 
@@ -118,6 +132,14 @@ function get_parent_element(elem, targetTag){
     }
     if(elem.tagName != targetTag) return undefined;
     return elem;
+}
+
+function addCSS(css_text, id=""){
+    var style = document.createElement('style');
+    if(id!="")
+        style.setAttribute("id", id);
+    style.appendChild(document.createTextNode(css_text));
+    document.getElementsByTagName('head')[0].appendChild(style);
 }
 
 /*
@@ -207,7 +229,9 @@ let tags = [
     {key:"test", value:"T"},
     {key:"usefull", value:"🎓"},
     {key:"book", value:"📚"},
-    {key:"like", value:"❤"},
+    {key:"like", value:"🧡"},
+    {key:"very-like", value:"💕"},
+    {key:"very-very-like", value:"⭐"},
     {key:"warning", value:"⚠"},
     {key:"r18", value:"🔞"}
 ]
@@ -215,9 +239,9 @@ function addButotns(article, id){
     const group = article.querySelector('[data-testid="retweet"]')?.parentElement?.parentElement?.parentElement?.parentElement
     let div = document.createElement("div")
     div.setAttribute("class", "test-input-area");
-    let buttons = []
+    let buttons = [];
     tags.forEach((tag)=>{
-        buttons.push(`<span class="save-button-span"><input type="button" class="save-button" value="${tag.value}" tagKey="${tag.key}" id="test-btn-${tag.key}"></span>`)
+        buttons.push(`<span class="save-button-span"><input type="button" class="save-button" value="${tag.value}" tagKey="${tag.key}" id="test-btn-${tag.key}"></span>`);
     })
     div.innerHTML = buttons.join("");
     [...div.querySelectorAll("input")].forEach((input)=>{
