@@ -11,10 +11,37 @@
             width:20px;
             margin:2px;
         }
+        table.tag-table{
+            border-collapse:  collapse;
+        }
+        table.tag-table > th,td{
+            border: solid 1px;
+            text-align: center;
+            width: 8em;
+        }
+        input.tag-def-check-btn-true{
+          background-color: darkgray;
+        }
+        input.tag-def-check-btn-false{
+          background-color: whitesmoke;
+        }
+        .update-button-areas{
+          margin: 5px;
+        }
     </style>
   </head>
   <body>
     <h1>Options</h1>
+    <h2>Setting</h2>
+    <details open>
+      <summary>setting options</summary>
+      <div id="default-tags">
+        <table class="tag-table" id="tag-table">
+        </table>
+        <div class="update-button-areas"><input type="button" class="tag-update" value="update tag" id="tag-update"></div>
+      </div>
+    </details>
+    <h2>Contents</h2>
     <div id="contents"></div>
     <script src="./option.js"></script>
   </body>
