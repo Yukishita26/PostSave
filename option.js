@@ -1,6 +1,19 @@
 setting_extract();
 contents_extract();
 
+console.log(`function addCSS(css, id=""){
+var st = document.createElement('style');
+if(id!="") st.setAttribute("id", id);
+st.appendChild(document.createTextNode(css));
+document.getElementsByTagName('head')[0].appendChild(st);
+}
+addCSS(\`span{border: solid 1px red; position: relative;}
+span::after{content: "span:" attr(class); font-size:0.6em; color:gray; padding-left: 1em; position: absolute; top 0; left 0}
+div{border: solid 1px red;}
+div::after{content: "div:" attr(class); font-size:0.6em; color:gray; padding-left: 1em}\`,
+"grouping-style")
+`)
+
 /*
 tags = {
     tag: "tag-text",
@@ -46,6 +59,10 @@ function show_tag_settings(){
         tag_table.innerHTML = strs.join("\n");
         [...tag_table.querySelectorAll(`input[type="button"]`)].forEach(btn=>btn.addEventListener("click", toggle_button));
     });
+    chrome.storage.local.get().then(result => {
+        let hidden = document.querySelector("#hidden-string");
+        hidden.textContent = JSON.stringify(result);
+    });
 }
 
 function toggle_button(event){
@@ -87,29 +104,54 @@ function update_tag_settings(){
 function contents_extract(){
     let contents = document.querySelector("#contents");
     chrome.storage.local.get().then((result) => {
-        console.log(result);
+        //console.log(result);
         contents.innerHTML = data_format(result);
-        console.log(JSON.stringify(result, null, "  "))
+        //console.log(JSON.stringify(result, null, "  "))
     });
 }
 
 function data_format(result){
-    const actions = result.actions;
-    const tweets = result.tweets;
-    const users = result.users;
+    const actions = result.actions; // [{datetime: time_str, id: str, tag: str}]
+    const tweets = result.tweets;   // {id: {...}}
+    const users = result.users;     // {screenname: {...}}
+    let entities = {};
+    actions.forEach((action, id) => {
+        if(action.id in entities){
+            entities[action.id].last_update = Math.max(entities[action.id].last_update, Date.parse(action.datetime));
+            entities[action.id].tags.push(action);
+        }else{
+            entities[action.id] = {
+                id: action.id,
+                last_update: Date.parse(action.datetime),
+                tags: [action]
+            };
+        }
+    });
+    let o_ent = Object.entries(entities).map(([key, val], _) => val); //[{id:str, last_update:time, tags:[action]}]
+    o_ent.sort((a, b) => -(a.last_update - b.last_update)); //降順
+    console.log(o_ent);
+
     let strs = [`<p>last update: ${result.last_update}</p>`];
     // all actions
+    o_ent.forEach(entity => {
+        const tweet = tweets[entity.id];
+        const user = users[tweet.screenname];
+        //strs.push(`<p><span>#${action.tag}</span></p>`);
+        strs = strs.concat(tweet_unit(tweet, user, entity.tags));
+    });
+    /*
     Object.entries(actions).reverse().forEach(([id, action], _)=>{
         const tweet = tweets[action.id];
         const user = users[tweet.screenname];
         strs.push(`<p><span>#${action.tag}</span></p>`)
         strs = strs.concat(tweet_unit(tweet, user));
-    })
+    });
+    */
     // all tweets
     strs.push(`<details><summary>All Tweets</summary>`);
     Object.entries(tweets).forEach(([id, tweet], _)=>{
         const user = users[tweet.screenname];
-        strs = strs.concat(tweet_unit(tweet, user));
+        //strs = strs.concat(tweet_unit(tweet, user));
     })
     strs.push(`</details>`);
     // raw data
@@ -121,25 +163,52 @@ function data_format(result){
     return strs.join("\n");
 }
 
-function tweet_unit(tweet, user){
+/*
+function md_link_replace(str){
+    str.match(/\[([^\]]+?)\]\(([^)]+?)\)/g).map()
+    // gで[...](...)を検索，それぞれgなしでgroupを取って置換後文字列を作成，replaceをそれぞれやる
+}
+*/
+
+function tweet_unit(tweet, user, tags){
     let strs = [];
-    strs.push("<dl>")
+    strs.push(`<div class="tweet"><dl>`)
+    // user state
     strs.push(`<dt>`);
-    strs.push(`<span><img src="${user.icon.replace("_normal", "_bigger")}" class="user-icon"></span> `);
-    strs.push(`<span>${user.name}</span> `);
-    strs.push(`<span><a href="https://twitter.com/${user.screenname}">@${user.screenname}</a></span>`);
+    const icon_src = user.icon//.replace("_normal", "_bigger");
+    strs.push(`<span class="tweet-user-icon"><img src="${icon_src}" class="user-icon"></span> `);
+    strs.push(`<span class="tweet-user-name">${user.name}</span> `);
+    strs.push(`<span class="tweet-user-screenname"><a href="https://twitter.com/${user.screenname}">@${user.screenname}</a></span>`);
     strs.push(`</dt>`);
-    let text = `${tweet.text}`
-    strs.push(`<dd>${text}</dd>`);
+    // tags
+    strs.push(`<dd><span class="tweet-tags">tags: `);
+    tags.forEach(action => {
+        strs.push(`<span class="tweet-tag">#${action.tag}</span>`);
+    })
+    strs.push(`</span></dd>`);
+    // tweet text
+    let text = `${tweet.text}`.replace("\n", "<br>");
+    //const md_link_match = /\[([^\]]+?)\]\(([^)]+?)\)/;
+    //let text = `${tweet.text_md}`.replace("\n", "<br>").replace(/\[([^\]]+?)\]\(([^)]+?)\)/g, "");
+    strs.push(`<dd><span class="tweet-text">${text}</span></dd>`);
+    tweet.card?.forEach((link) => {
+        strs.push(`<dd><span class="tweet-card">Card: <a href="https://twitter.com/${link}">${link}</a></span></dd>`);
+    });
+    if("quote" in tweet){
+        strs.push(`<dd><blockquote class="tweet-quote">`);
+        strs.push(`<p>${tweet.quote.name} <a href="https://twitter.com/${tweet.quote.screenname}">@${tweet.quote.screenname}</a></p>`);
+        strs.push(`<p>${tweet.quote.text.replace("\n", "<br>")}</a></p>`);
+        strs.push(`</blockquote></dd>`);
+    }
     if("photos" in tweet){
-        strs.push("<dd>")
+        strs.push(`<dd><div class="tweet-media">`)
         tweet.photos.forEach((photo_src)=>{
             let photo = `<img src="${photo_src.replace("name=small", "name=orig")}" class="tweet-image">`
             strs.push(photo);
         })
-        strs.push("</dd>")
+        strs.push("</div></dd>")
     }
-    strs.push(`<dd><a href="https://twitter.com${tweet.url}">${tweet.time}</a></dd>`);
-    strs.push("</dl>")
+    strs.push(`<dd><span class="tweet-time"><a href="https://twitter.com${tweet.url}">${tweet.time}</a></span></dd>`);
+    strs.push("</div></dl>")
     return strs;
 }
